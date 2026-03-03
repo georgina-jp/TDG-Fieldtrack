@@ -445,7 +445,7 @@ let photoBase64 = [];
 
 // ── AUTH ────────────────────────────────────────────────────────────────────
 function startGoogleAuth() {
-  if (GOOGLE_CLIENT_ID === '262584479732-i62f5m7dfbc3d9o21qp28elfqkt4f3ht.apps.googleusercontent.com') { showSetup(); return; }
+  // Client ID is set
   const p = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
     redirect_uri: window.location.href.split('?')[0].split('#')[0],
