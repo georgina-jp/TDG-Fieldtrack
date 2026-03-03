@@ -428,7 +428,7 @@ Hi, today I finished the kitchen and bathroom on Floor 20, Unit 2003. Installed 
 
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────────────────
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID_HERE';
+const GOOGLE_CLIENT_ID = '262584479732-i62f5m7dfbc3d9o21qp28elfqkt4f3ht.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
 
 let accessToken   = null;
@@ -445,7 +445,7 @@ let photoBase64 = [];
 
 // ── AUTH ────────────────────────────────────────────────────────────────────
 function startGoogleAuth() {
-  if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID_HERE') { showSetup(); return; }
+  if (GOOGLE_CLIENT_ID === '262584479732-i62f5m7dfbc3d9o21qp28elfqkt4f3ht.apps.googleusercontent.com') { showSetup(); return; }
   const p = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
     redirect_uri: window.location.href.split('?')[0].split('#')[0],
@@ -917,7 +917,7 @@ function showSetup() {
         'Left menu: <strong>Credentials → + Create Credentials → OAuth Client ID → Web application</strong>',
         `Under <strong>Authorized JavaScript origins</strong> add exactly: <code style="background:var(--surface2);padding:2px 8px;border-radius:4px;font-size:0.7rem">${window.location.origin}</code>`,
         'Click <strong>Create</strong> → copy the <strong>Client ID</strong>',
-        'Open this HTML file in Notepad, find <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:0.7rem">YOUR_GOOGLE_CLIENT_ID_HERE</code>, replace it with your Client ID → Save',
+        'Open this HTML file in Notepad, find <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:0.7rem">262584479732-i62f5m7dfbc3d9o21qp28elfqkt4f3ht.apps.googleusercontent.com</code>, replace it with your Client ID → Save',
         'Reopen in your browser → Done ✅'
       ].map((s,i)=>`<div style="display:flex;gap:12px;margin-bottom:12px;align-items:flex-start">
         <div style="min-width:24px;height:24px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:0.72rem;flex-shrink:0;margin-top:2px">${i+1}</div>
