@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FieldTrack — Daily Work Reports</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #161920;
+    --surface2: #1e2230;
+    --border: #2a2f3d;
+    --accent: #f0c040;
+    --accent2: #4ade80;
+    --danger: #f87171;
+    --blue: #60a5fa;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 36px; border-bottom: 1px solid var(--border);
+    background: var(--surface); position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+  .badge { font-size: 0.63rem; background: var(--accent); color: #000; padding: 3px 10px; border-radius: 20px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* AUTH */
+  #auth-section {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 40px; max-width: 560px; margin: 60px auto; text-align: center;
+  }
+  #auth-section h2 { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 10px; letter-spacing: 0; }
+  #auth-section p { color: var(--muted); font-size: 0.78rem; line-height: 1.8; margin-bottom: 28px; }
+  .btn-google {
+    background: #fff; color: #1f2937; border: none; border-radius: var(--radius);
+    font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700;
+    padding: 14px 28px; cursor: pointer; display: inline-flex; align-items: center; gap: 10px;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn-google:hover { opacity: 0.92; transform: translateY(-1px); }
+  .perms-list { margin-top: 22px; text-align: left; background: var(--surface2); border-radius: var(--radius); padding: 16px 20px; }
+  .perms-list p { font-size: 0.66rem; color: var(--muted); margin-bottom: 8px; letter-spacing: 1px; text-transform: uppercase; }
+  .perm-item { display: flex; align-items: center; gap: 10px; font-size: 0.74rem; color: var(--text); padding: 5px 0; }
+  .perm-dot { width: 6px; height: 6px; background: var(--accent2); border-radius: 50%; flex-shrink: 0; }
+
+  /* APP */
+  #app-section { display: none; }
+  main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+  .user-bar {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 16px; margin-bottom: 22px; font-size: 0.74rem;
+  }
+  .user-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem; color: #000; overflow: hidden; flex-shrink: 0; }
+  .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .user-name { color: var(--text); font-weight: 500; }
+  .user-email { color: var(--muted); font-size: 0.66rem; }
+  .drive-badge { display: flex; align-items: center; gap: 6px; font-size: 0.68rem; padding: 5px 12px; border-radius: 20px; color: var(--accent2); border: 1px solid rgba(74,222,128,0.3); }
+  .drive-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); }
+  .btn-signout { background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 0.68rem; font-family: 'DM Mono', monospace; cursor: pointer; transition: color 0.2s; margin-left: auto; }
+  .btn-signout:hover { color: var(--danger); }
+
+  #folder-banner { background: rgba(74,222,128,0.07); border: 1px solid rgba(74,222,128,0.2); border-radius: var(--radius); padding: 11px 16px; display: none; align-items: center; gap: 10px; margin-bottom: 22px; font-size: 0.73rem; }
+  #folder-banner a { color: var(--accent2); text-decoration: none; }
+  #folder-banner a:hover { text-decoration: underline; }
+
+  .section-label { font-family: 'Syne', sans-serif; font-size: 0.66rem; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .card-title { font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px; color: var(--accent); }
+
+  .meta-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .location-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1.5fr; gap: 12px; margin-bottom: 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .location-label { grid-column: 1/-1; font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 2px; font-family: 'Syne', sans-serif; font-weight: 700; }
+
+  .field label { display: block; font-size: 0.61rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .field input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 0.8rem; padding: 10px 12px; outline: none; transition: border-color 0.2s;
+  }
+  .field input:focus { border-color: var(--accent); }
+
+  .intake-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 0.78rem; padding: 14px; resize: vertical; min-height: 155px; line-height: 1.6; outline: none; transition: border-color 0.2s;
+  }
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+
+  .photo-drop {
+    border: 2px dashed var(--border); border-radius: var(--radius); background: var(--surface2);
+    min-height: 155px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; transition: border-color 0.2s; position: relative; overflow: hidden;
+  }
+  .photo-drop:hover, .photo-drop.dragover { border-color: var(--accent); background: rgba(240,192,64,0.04); }
+  .photo-drop input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop-icon { font-size: 1.8rem; margin-bottom: 8px; opacity: 0.5; }
+  .drop-label { font-size: 0.7rem; color: var(--muted); text-align: center; line-height: 1.7; }
+  .drop-label strong { color: var(--accent); }
+  .photo-previews { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+  .photo-thumb { width: 54px; height: 54px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border); }
+
+  .error-msg { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--danger); border-radius: var(--radius); padding: 12px 16px; font-size: 0.75rem; margin-bottom: 14px; display: none; }
+
+  #upload-progress { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 16px; display: none; }
+  .prog-title { font-size: 0.66rem; color: var(--muted); margin-bottom: 10px; letter-spacing: 1px; text-transform: uppercase; }
+  .prog-step { display: flex; align-items: center; gap: 10px; font-size: 0.74rem; padding: 4px 0; color: var(--muted); transition: color 0.3s; }
+  .prog-step.active { color: var(--accent); }
+  .prog-step.done { color: var(--accent2); }
+
+  .btn-analyze {
+    width: 100%; background: var(--accent); color: #000; border: none; border-radius: var(--radius);
+    font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 700; letter-spacing: 1px;
+    padding: 15px; cursor: pointer; text-transform: uppercase; transition: opacity 0.2s;
+    margin-bottom: 30px; display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .btn-analyze:hover { opacity: 0.9; }
+  .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; }
+  .spinner { width: 17px; height: 17px; border: 2px solid rgba(0,0,0,0.25); border-top-color: #000; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* RESULTS AREA */
+  #results-section { display: none; }
+
+  /* PROJECT TABS */
+  .project-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+  .project-tab {
+    font-family: 'Syne', sans-serif; font-size: 0.7rem; font-weight: 700;
+    padding: 7px 16px; border-radius: 20px; cursor: pointer;
+    border: 1px solid var(--border); color: var(--muted); background: var(--surface2);
+    transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 7px;
+  }
+  .project-tab.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  .project-tab:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+  .tab-count { font-size: 0.6rem; background: rgba(0,0,0,0.15); padding: 1px 6px; border-radius: 10px; }
+  .project-tab.active .tab-count { background: rgba(0,0,0,0.2); }
+
+  /* FILTERS */
+  .filter-bar {
+    display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 10px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; align-items: end;
+  }
+  .filter-field label { display: block; font-size: 0.58rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+  .filter-field input, .filter-field select {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 7px; color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 0.76rem; padding: 8px 10px; outline: none; transition: border-color 0.2s; -webkit-appearance: none;
+  }
+  .filter-field input:focus, .filter-field select:focus { border-color: var(--accent); }
+  .filter-field select option { background: var(--bg); }
+  .btn-clear-filters {
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 7px; font-family: 'DM Mono', monospace; font-size: 0.7rem;
+    padding: 8px 14px; cursor: pointer; transition: color 0.2s; white-space: nowrap; align-self: end;
+  }
+  .btn-clear-filters:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* RESULT HEADER */
+  .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .result-count { font-size: 0.72rem; color: var(--muted); }
+  .result-count strong { color: var(--text); }
+
+  .btn-export { background: var(--accent2); color: #000; border: none; border-radius: var(--radius); font-family: 'Syne', sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; padding: 9px 16px; cursor: pointer; text-transform: uppercase; transition: opacity 0.2s; }
+  .btn-export:hover { opacity: 0.85; }
+  .btn-add { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: var(--radius); font-family: 'Syne', sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; padding: 9px 16px; cursor: pointer; text-transform: uppercase; transition: background 0.2s, color 0.2s; }
+  .btn-add:hover { background: var(--accent); color: #000; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.73rem; }
+  thead tr { background: var(--surface2); border-bottom: 2px solid var(--border); }
+  thead th {
+    padding: 10px 12px; text-align: left; font-size: 0.57rem; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--muted); font-weight: 600; white-space: nowrap;
+    cursor: pointer; user-select: none; transition: color 0.2s;
+  }
+  thead th:hover { color: var(--accent); }
+  thead th .sort-arrow { opacity: 0.4; margin-left: 4px; font-size: 0.6rem; }
+  thead th.sorted { color: var(--accent); }
+  thead th.sorted .sort-arrow { opacity: 1; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.12s; }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr.hidden-row { display: none; }
+  tbody td { padding: 10px 12px; vertical-align: middle; }
+
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 0.64rem; white-space: nowrap; }
+  .tag-floor { background: rgba(96,165,250,0.12); color: var(--blue); }
+  .tag-unit  { background: rgba(167,139,250,0.12); color: #a78bfa; }
+  .tag-zone  { background: rgba(52,211,153,0.1);  color: #34d399; }
+
+  .status-pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 0.63rem; font-weight: 600; text-transform: uppercase; }
+  .s100 { background: rgba(74,222,128,0.15); color: var(--accent2); }
+  .s75  { background: rgba(240,192,64,0.15);  color: var(--accent); }
+  .s50  { background: rgba(251,191,36,0.12);  color: #fbbf24; }
+  .s25  { background: rgba(248,113,113,0.15); color: var(--danger); }
+  .s0   { background: rgba(107,114,128,0.18); color: var(--muted); }
+
+  .drive-link { color: var(--blue); font-size: 0.65rem; text-decoration: none; }
+  .drive-link:hover { text-decoration: underline; }
+
+  /* STATS */
+  .stat-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 20px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--accent); display: block; }
+  .stat-label { font-size: 0.58rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+
+  /* WORKFORCE NOTES */
+  #workforce-section { margin-top: 28px; display: none; }
+  .notes-box { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; font-size: 0.73rem; line-height: 2; white-space: pre-wrap; }
+  .copy-btn { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; font-size: 0.68rem; font-family: 'DM Mono', monospace; cursor: pointer; transition: color 0.2s; margin-top: 10px; }
+  .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 0.78rem; }
+  .empty-state div { font-size: 2rem; margin-bottom: 10px; }
+
+  @media (max-width: 900px) {
+    .intake-grid { grid-template-columns: 1fr; }
+    .meta-row { grid-template-columns: 1fr 1fr; }
+    .location-row { grid-template-columns: 1fr 1fr; }
+    .filter-bar { grid-template-columns: 1fr 1fr; }
+    .stat-row { grid-template-columns: repeat(3, 1fr); }
+    header { padding: 14px 18px; }
+    main { padding: 18px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Field<span>Track</span></div>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <span style="font-size:0.68rem;color:var(--muted);">Daily Work Reports</span>
+    <span class="badge">+ Google Drive</span>
+  </div>
+</header>
+
+<!-- AUTH -->
+<div id="auth-section">
+  <div style="font-size:2.5rem;margin-bottom:16px;">🔐</div>
+  <h2>Connect your Google Account</h2>
+  <p>Sign in to save all reports and photos directly to Google Drive, organized by project — with a single accumulating spreadsheet per project your team can filter by date, floor, unit, or technician at any time.</p>
+  <button class="btn-google" onclick="startGoogleAuth()">
+    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+    Sign in with Google
+  </button>
+  <div class="perms-list">
+    <p>Permissions requested:</p>
+    <div class="perm-item"><div class="perm-dot"></div>Create a "FieldTrack Reports" folder in your Google Drive</div>
+    <div class="perm-item"><div class="perm-dot"></div>Upload and update one Excel file per project (accumulating all reports)</div>
+    <div class="perm-item"><div class="perm-dot"></div>Upload photos organized by project, floor, unit, and zone</div>
+    <div class="perm-item"><div class="perm-dot"></div>Read your name and email for the top bar</div>
+  </div>
+  <p style="margin-top:16px;font-size:0.66rem;color:var(--muted);">🔒 Data goes directly from your browser to Google Drive. No third-party servers.</p>
+</div>
+
+<!-- APP -->
+<div id="app-section">
+<main>
+
+  <div class="user-bar">
+    <div class="user-avatar" id="user-avatar">?</div>
+    <div>
+      <div class="user-name" id="user-name">Loading...</div>
+      <div class="user-email" id="user-email"></div>
+    </div>
+    <div class="drive-badge" style="margin-left:10px;"><div class="drive-dot"></div>Drive connected</div>
+    <button class="btn-signout" onclick="signOut()">Sign out</button>
+  </div>
+
+  <div id="folder-banner">
+    <span>📁</span>
+    <span>Saving to: <a id="folder-link" href="#" target="_blank">FieldTrack Reports</a> — share this folder with your management team</span>
+  </div>
+
+  <!-- ENTRY FORM -->
+  <div class="section-label">📋 New Report Entry</div>
+
+  <div class="meta-row">
+    <div class="field"><label>Technician Name</label><input type="text" id="tech-name" placeholder="e.g. Carlos Méndez"></div>
+    <div class="field"><label>Date</label><input type="date" id="report-date"></div>
+    <div class="field"><label>Hours Worked</label><input type="number" id="hours-override" placeholder="e.g. 7.5" step="0.5" min="0" max="24"></div>
+  </div>
+
+  <div class="location-row">
+    <div class="location-label">📍 Work Location</div>
+    <div class="field"><label>Project</label><input type="text" id="project-name" placeholder="e.g. Torre Residencial Norte"></div>
+    <div class="field"><label>Floor</label><input type="text" id="floor-name" placeholder="e.g. Floor 20"></div>
+    <div class="field"><label>Unit</label><input type="text" id="unit-name" placeholder="e.g. Unit 2005"></div>
+    <div class="field"><label>Zone / Area</label><input type="text" id="zone-name" placeholder="e.g. Kitchen, Bathroom"></div>
+  </div>
+
+  <div class="intake-grid">
+    <div class="card">
+      <div class="card-title">💬 WhatsApp Message</div>
+      <textarea id="whatsapp-text" placeholder="Paste the technician's WhatsApp message here...
+
+Example:
+Hi, today I finished the kitchen and bathroom on Floor 20, Unit 2003. Installed all tiles. 100% done. Used 60 tiles, 3kg grout. 8 hours. Starting Floor 21 tomorrow."></textarea>
+    </div>
+    <div class="card">
+      <div class="card-title">📷 Work Photos</div>
+      <div class="photo-drop" id="photo-drop">
+        <input type="file" id="photo-input" accept="image/*" multiple>
+        <div class="drop-icon">📸</div>
+        <div class="drop-label">
+          <strong>Click or drag</strong> photos here<br>
+          <span style="font-size:0.63rem;">Saved to Drive under Project → Floor → Unit</span>
+        </div>
+      </div>
+      <div class="photo-previews" id="photo-previews"></div>
+    </div>
+  </div>
+
+  <div class="error-msg" id="error-msg"></div>
+
+  <div id="upload-progress">
+    <div class="prog-title">Processing...</div>
+    <div class="prog-step" id="step-ai">🤖 &nbsp;AI reading message and photos...</div>
+    <div class="prog-step" id="step-folder">📁 &nbsp;Creating Drive folders...</div>
+    <div class="prog-step" id="step-photos">🖼️ &nbsp;Uploading photos...</div>
+    <div class="prog-step" id="step-excel">📊 &nbsp;Updating project spreadsheet...</div>
+    <div class="prog-step" id="step-done">✅ &nbsp;Report saved!</div>
+  </div>
+
+  <button class="btn-analyze" id="analyze-btn" onclick="analyzeReport()">
+    <div class="spinner" id="spinner"></div>
+    <span id="btn-label">⚡ Analyze &amp; Save to Drive</span>
+  </button>
+
+  <!-- RESULTS -->
+  <div id="results-section">
+
+    <div class="section-label" style="margin-bottom:12px;">📊 Project Reports</div>
+    <div class="project-tabs" id="project-tabs"></div>
+
+    <!-- FILTERS -->
+    <div class="filter-bar">
+      <div class="filter-field">
+        <label>Filter by Date</label>
+        <input type="date" id="filter-date" oninput="applyFilters()">
+      </div>
+      <div class="filter-field">
+        <label>Filter by Floor</label>
+        <select id="filter-floor" onchange="applyFilters()"><option value="">All floors</option></select>
+      </div>
+      <div class="filter-field">
+        <label>Filter by Unit</label>
+        <select id="filter-unit" onchange="applyFilters()"><option value="">All units</option></select>
+      </div>
+      <div class="filter-field">
+        <label>Filter by Zone</label>
+        <select id="filter-zone" onchange="applyFilters()"><option value="">All zones</option></select>
+      </div>
+      <div class="filter-field">
+        <label>Filter by Technician</label>
+        <select id="filter-tech" onchange="applyFilters()"><option value="">All technicians</option></select>
+      </div>
+      <button class="btn-clear-filters" onclick="clearFilters()">✕ Clear</button>
+    </div>
+
+    <div class="result-header">
+      <div class="result-count">Showing <strong id="visible-count">0</strong> of <strong id="total-count">0</strong> reports</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn-add" onclick="scrollToTop()">+ Add Report</button>
+        <button class="btn-export" onclick="exportFiltered()">↓ Export Filtered to Excel</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table id="reports-table">
+        <thead>
+          <tr>
+            <th onclick="sortTable('date')">Date <span class="sort-arrow">↕</span></th>
+            <th onclick="sortTable('technician')">Technician <span class="sort-arrow">↕</span></th>
+            <th onclick="sortTable('floor')">Floor <span class="sort-arrow">↕</span></th>
+            <th onclick="sortTable('unit')">Unit <span class="sort-arrow">↕</span></th>
+            <th>Zone / Area</th>
+            <th onclick="sortTable('hours_worked')">Hours <span class="sort-arrow">↕</span></th>
+            <th onclick="sortTable('status_pct')">Status <span class="sort-arrow">↕</span></th>
+            <th>Materials Used</th>
+            <th>Work Performed</th>
+            <th>Notes / Issues</th>
+            <th>Photos</th>
+          </tr>
+        </thead>
+        <tbody id="reports-body">
+          <tr><td colspan="11"><div class="empty-state"><div>📋</div>No reports yet. Add your first report above.</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="stat-row" id="stat-row">
+      <div class="stat-card"><span class="stat-num" id="s-reports">0</span><div class="stat-label">Total Reports</div></div>
+      <div class="stat-card"><span class="stat-num" id="s-hours">0h</span><div class="stat-label">Total Hours</div></div>
+      <div class="stat-card"><span class="stat-num" id="s-avg">0%</span><div class="stat-label">Avg Completion</div></div>
+      <div class="stat-card"><span class="stat-num" id="s-floors">0</span><div class="stat-label">Floors Active</div></div>
+      <div class="stat-card"><span class="stat-num" id="s-units">0</span><div class="stat-label">Units Worked</div></div>
+    </div>
+  </div>
+
+  <!-- WORKFORCE NOTES -->
+  <div id="workforce-section">
+    <div class="section-label" style="margin-top:28px;">🗂 Workforce Notes</div>
+    <div class="notes-box" id="workforce-notes"></div>
+    <button class="copy-btn" onclick="copyNotes()">📋 Copy to clipboard</button>
+  </div>
+
+</main>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID_HERE';
+const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
+
+let accessToken   = null;
+let rootFolderId  = null;
+let activeProject = null;
+let sortCol       = 'date';
+let sortAsc       = true;
+
+// projectData[name] = { folderId, fileId, reports: [...] }
+let projectData = {};
+
+let photoFiles  = [];
+let photoBase64 = [];
+
+// ── AUTH ────────────────────────────────────────────────────────────────────
+function startGoogleAuth() {
+  if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID_HERE') { showSetup(); return; }
+  const p = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: window.location.href.split('?')[0].split('#')[0],
+    response_type: 'token', scope: SCOPES, prompt: 'select_account'
+  });
+  window.location.href = 'https://accounts.google.com/o/oauth2/auth?' + p;
+}
+
+function handleAuthCallback() {
+  const params = new URLSearchParams(window.location.hash.substring(1));
+  const token = params.get('access_token');
+  if (token) { accessToken = token; window.history.replaceState({}, '', window.location.pathname); loadUserInfo(); }
+}
+
+async function loadUserInfo() {
+  const u = await (await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { Authorization: 'Bearer ' + accessToken } })).json();
+  document.getElementById('user-name').textContent  = u.name  || 'User';
+  document.getElementById('user-email').textContent = u.email || '';
+  const av = document.getElementById('user-avatar');
+  if (u.picture) av.innerHTML = `<img src="${u.picture}">`; else av.textContent = (u.name||'U')[0];
+  document.getElementById('auth-section').style.display = 'none';
+  document.getElementById('app-section').style.display  = 'block';
+  await ensureRootFolder();
+}
+
+function signOut() {
+  accessToken = null; rootFolderId = null; projectData = {}; activeProject = null;
+  document.getElementById('auth-section').style.display = 'block';
+  document.getElementById('app-section').style.display  = 'none';
+  document.getElementById('results-section').style.display   = 'none';
+  document.getElementById('workforce-section').style.display = 'none';
+}
+
+// ── DRIVE ───────────────────────────────────────────────────────────────────
+async function driveJSON(url, method='GET', body=null, extra={}) {
+  const r = await fetch(url, { method, headers: { Authorization:'Bearer '+accessToken, ...extra }, body });
+  return r.json();
+}
+
+async function findOrCreate(name, parentId) {
+  const q = `name='${name.replace(/'/g,"\\'")}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  const res = await driveJSON(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,webViewLink)`);
+  if (res.files?.length) return res.files[0];
+  return driveJSON('https://www.googleapis.com/drive/v3/files?fields=id,webViewLink','POST',
+    JSON.stringify({ name, mimeType:'application/vnd.google-apps.folder', parents:[parentId] }),
+    {'Content-Type':'application/json'});
+}
+
+async function findFile(name, parentId) {
+  const q = `name='${name.replace(/'/g,"\\'")}' and '${parentId}' in parents and trashed=false`;
+  const res = await driveJSON(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,webViewLink)`);
+  return res.files?.length ? res.files[0] : null;
+}
+
+async function uploadBlob(blob, name, parentId) {
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify({name, parents:[parentId]})], {type:'application/json'}));
+  form.append('file', blob);
+  const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',
+    { method:'POST', headers:{Authorization:'Bearer '+accessToken}, body:form });
+  return r.json();
+}
+
+async function updateBlob(fileId, blob) {
+  await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+    { method:'PATCH', headers:{Authorization:'Bearer '+accessToken, 'Content-Type': blob.type}, body:blob });
+}
+
+async function ensureRootFolder() {
+  const f = await findOrCreate('FieldTrack Reports', 'root');
+  rootFolderId = f.id;
+  document.getElementById('folder-link').href = f.webViewLink || `https://drive.google.com/drive/folders/${f.id}`;
+  document.getElementById('folder-banner').style.display = 'flex';
+}
+
+// ── PHOTOS ──────────────────────────────────────────────────────────────────
+document.getElementById('photo-input').addEventListener('change', e => loadPhotos(e.target.files));
+const pd = document.getElementById('photo-drop');
+pd.addEventListener('dragover',  e => { e.preventDefault(); pd.classList.add('dragover'); });
+pd.addEventListener('dragleave', () => pd.classList.remove('dragover'));
+pd.addEventListener('drop',      e => { e.preventDefault(); pd.classList.remove('dragover'); loadPhotos(e.dataTransfer.files); });
+
+function loadPhotos(files) {
+  photoFiles = Array.from(files).slice(0, 8);
+  photoBase64 = [];
+  document.getElementById('photo-previews').innerHTML = '';
+  photoFiles.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      photoBase64.push({ base64: ev.target.result.split(',')[1], type: file.type });
+      const img = document.createElement('img'); img.src = ev.target.result; img.className = 'photo-thumb';
+      document.getElementById('photo-previews').appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── ANALYZE + SAVE ──────────────────────────────────────────────────────────
+function step(id, state) {
+  const el = document.getElementById(id);
+  el.className = 'prog-step ' + state;
+}
+
+async function analyzeReport() {
+  const techName    = document.getElementById('tech-name').value.trim();
+  const reportDate  = document.getElementById('report-date').value;
+  const hoursOver   = document.getElementById('hours-override').value;
+  const projectName = document.getElementById('project-name').value.trim();
+  const floorName   = document.getElementById('floor-name').value.trim();
+  const unitName    = document.getElementById('unit-name').value.trim();
+  const zoneName    = document.getElementById('zone-name').value.trim();
+  const msgText     = document.getElementById('whatsapp-text').value.trim();
+
+  if (!msgText && photoBase64.length === 0) { showError('Please paste the WhatsApp message or add photos.'); return; }
+
+  setLoading(true);
+  document.getElementById('upload-progress').style.display = 'block';
+  ['step-ai','step-folder','step-photos','step-excel','step-done'].forEach(s => step(s,''));
+  step('step-ai','active');
+
+  try {
+    // 1 ─ AI extraction
+    const parts = [];
+    photoBase64.forEach(p => parts.push({ type:'image', source:{ type:'base64', media_type:p.type, data:p.base64 } }));
+    parts.push({ type:'text', text:`You are a field operations assistant. Extract a structured daily work report.
+
+Technician: ${techName || 'Unknown'}
+Date: ${reportDate}
+Project: ${projectName || 'Unknown'}
+Floor: ${floorName || 'Not specified'}
+Unit: ${unitName || 'Not specified'}
+Zone/Area: ${zoneName || 'Not specified'}
+${hoursOver ? 'Hours worked (user-entered): ' + hoursOver : ''}
+WhatsApp message: ${msgText || '(analyze photos only)'}
+
+Respond ONLY with valid JSON, no markdown:
+{
+  "technician": "full name",
+  "date": "YYYY-MM-DD",
+  "project": "project name",
+  "floor": "floor name/number",
+  "unit": "unit name/number",
+  "zone": "zone or area name",
+  "hours_worked": number,
+  "status_pct": number 0-100,
+  "materials_used": "concise list with quantities",
+  "work_performed": "brief description",
+  "notes": "issues or observations, empty string if none",
+  "workforce_note": "2-sentence professional note: technician, project, floor, unit, zone, date, hours, completion%, key observations"
+}` });
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, messages:[{role:'user', content:parts}] })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    const r = JSON.parse(data.content.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim());
+    step('step-ai','done');
+
+    // 2 ─ Drive folder: FieldTrack / Project / Floor / Unit
+    step('step-folder','active');
+    const projF  = await findOrCreate(r.project,          rootFolderId);
+    const floorF = await findOrCreate(r.floor  || 'General', projF.id);
+    const unitF  = await findOrCreate(r.unit   || 'General', floorF.id);
+    step('step-folder','done');
+
+    // 3 ─ Upload photos into Zone–Date subfolder
+    step('step-photos','active');
+    let photosLink = unitF.webViewLink || `https://drive.google.com/drive/folders/${unitF.id}`;
+    if (photoFiles.length > 0) {
+      const pf = await findOrCreate(`${r.zone||'Work'} – ${r.date}`, unitF.id);
+      photosLink = pf.webViewLink || `https://drive.google.com/drive/folders/${pf.id}`;
+      for (let i = 0; i < photoFiles.length; i++) {
+        const f = photoFiles[i];
+        await uploadBlob(new Blob([await f.arrayBuffer()],{type:f.type}), `${String(i+1).padStart(2,'0')}_${f.name}`, pf.id);
+      }
+    }
+    step('step-photos','done');
+
+    // 4 ─ Build & save accumulating Excel for this project
+    step('step-excel','active');
+    r._photosLink = photosLink;
+
+    if (!projectData[r.project]) projectData[r.project] = { folderId: projF.id, fileId: null, reports: [] };
+    projectData[r.project].reports.push(r);
+
+    const xlsxBlob = buildExcelBlob(projectData[r.project].reports, r.project);
+    const excelName = `${r.project} – Work Reports.xlsx`;
+    const existing = await findFile(excelName, projF.id);
+    if (existing) { await updateBlob(existing.id, xlsxBlob); projectData[r.project].fileId = existing.id; }
+    else { const up = await uploadBlob(xlsxBlob, excelName, projF.id); projectData[r.project].fileId = up.id; }
+    step('step-excel','done');
+    step('step-done','done');
+
+    // 5 ─ Update UI
+    refreshProjectTab(r.project);
+    rebuildFilterOptions(r.project);
+    renderTable(r.project);
+    updateStats(r.project);
+    updateWorkforceNotes();
+    clearForm();
+
+    document.getElementById('results-section').style.display   = 'block';
+    document.getElementById('workforce-section').style.display = 'block';
+    setTimeout(() => {
+      document.getElementById('upload-progress').style.display = 'none';
+      document.getElementById('results-section').scrollIntoView({ behavior:'smooth' });
+    }, 1400);
+
+  } catch(err) {
+    showError('Error: ' + err.message);
+    document.getElementById('upload-progress').style.display = 'none';
+  }
+  setLoading(false);
+}
+
+// ── EXCEL ───────────────────────────────────────────────────────────────────
+function buildExcelBlob(reports, projectName) {
+  const HEADER = ['Date','Technician','Floor','Unit','Zone / Area','Hours Worked','Status (%)','Materials Used','Work Performed','Notes / Issues','Photo Folder'];
+  const rows = [HEADER, ...reports.map(r => [
+    r.date||'', r.technician||'', r.floor||'', r.unit||'', r.zone||'',
+    r.hours_worked||'', r.status_pct||'', r.materials_used||'', r.work_performed||'', r.notes||'', r._photosLink||''
+  ])];
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:12},{wch:22},{wch:10},{wch:10},{wch:18},{wch:13},{wch:11},{wch:28},{wch:38},{wch:30},{wch:20}];
+
+  // Enable AutoFilter on header row
+  ws['!autofilter'] = { ref: `A1:K${rows.length}` };
+
+  // Bold header
+  HEADER.forEach((_, i) => {
+    const cell = XLSX.utils.encode_cell({ r:0, c:i });
+    if (ws[cell]) ws[cell].s = { font:{ bold:true }, fill:{ fgColor:{ rgb:'1E2230' } } };
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'All Reports');
+  const buf = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+  return new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+// ── PROJECT TABS ────────────────────────────────────────────────────────────
+function refreshProjectTab(projectName) {
+  activeProject = projectName;
+  const container = document.getElementById('project-tabs');
+  let tab = container.querySelector(`[data-proj]`);
+  // Find existing tab for this project
+  const allTabs = Array.from(container.querySelectorAll('.project-tab'));
+  let existing = allTabs.find(t => t.dataset.proj === projectName);
+  const count = projectData[projectName]?.reports?.length || 0;
+
+  if (!existing) {
+    existing = document.createElement('div');
+    existing.className = 'project-tab';
+    existing.dataset.proj = projectName;
+    existing.onclick = () => switchProject(projectName);
+    container.appendChild(existing);
+  }
+  existing.innerHTML = `${projectName} <span class="tab-count">${count}</span>`;
+  allTabs.forEach(t => t.classList.toggle('active', t.dataset.proj === projectName));
+  existing.classList.add('active');
+}
+
+function switchProject(name) {
+  activeProject = name;
+  document.querySelectorAll('.project-tab').forEach(t => t.classList.toggle('active', t.dataset.proj === name));
+  rebuildFilterOptions(name);
+  clearFilters();
+  renderTable(name);
+  updateStats(name);
+}
+
+// ── FILTERS ─────────────────────────────────────────────────────────────────
+function rebuildFilterOptions(projectName) {
+  const reports = projectData[projectName]?.reports || [];
+  const populate = (id, values) => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">All</option>`;
+    [...new Set(values)].sort().forEach(v => {
+      const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o);
+    });
+    sel.value = cur;
+  };
+  populate('filter-floor', reports.map(r => r.floor).filter(Boolean));
+  populate('filter-unit',  reports.map(r => r.unit).filter(Boolean));
+  populate('filter-zone',  reports.map(r => r.zone).filter(Boolean));
+  populate('filter-tech',  reports.map(r => r.technician).filter(Boolean));
+}
+
+function applyFilters() {
+  const fDate  = document.getElementById('filter-date').value;
+  const fFloor = document.getElementById('filter-floor').value;
+  const fUnit  = document.getElementById('filter-unit').value;
+  const fZone  = document.getElementById('filter-zone').value;
+  const fTech  = document.getElementById('filter-tech').value;
+
+  let visible = 0;
+  const rows = document.querySelectorAll('#reports-body tr[data-idx]');
+  rows.forEach(tr => {
+    const r = currentReports()[parseInt(tr.dataset.idx)];
+    if (!r) return;
+    const show = (!fDate  || r.date        === fDate)  &&
+                 (!fFloor || r.floor       === fFloor) &&
+                 (!fUnit  || r.unit        === fUnit)  &&
+                 (!fZone  || r.zone        === fZone)  &&
+                 (!fTech  || r.technician  === fTech);
+    tr.classList.toggle('hidden-row', !show);
+    if (show) visible++;
+  });
+  document.getElementById('visible-count').textContent = visible;
+}
+
+function clearFilters() {
+  ['filter-date','filter-floor','filter-unit','filter-zone','filter-tech'].forEach(id => {
+    const el = document.getElementById(id);
+    el.value = '';
+  });
+  applyFilters();
+}
+
+// ── TABLE ───────────────────────────────────────────────────────────────────
+function currentReports() {
+  return (activeProject && projectData[activeProject]?.reports) || [];
+}
+
+function renderTable(projectName) {
+  const reports = projectData[projectName]?.reports || [];
+  const sorted  = sortReports([...reports]);
+  const tbody   = document.getElementById('reports-body');
+  tbody.innerHTML = '';
+
+  if (sorted.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state"><div>📋</div>No reports yet for this project.</div></td></tr>';
+    document.getElementById('visible-count').textContent = 0;
+    document.getElementById('total-count').textContent   = 0;
+    return;
+  }
+
+  sorted.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    tr.dataset.idx = i;
+    tr.innerHTML = `
+      <td style="white-space:nowrap;">${r.date||'—'}</td>
+      <td>${esc(r.technician)}</td>
+      <td><span class="tag tag-floor">${esc(r.floor)||'—'}</span></td>
+      <td><span class="tag tag-unit">${esc(r.unit)||'—'}</span></td>
+      <td><span class="tag tag-zone">${esc(r.zone)||'—'}</span></td>
+      <td>${r.hours_worked||'—'}h</td>
+      <td><span class="status-pill ${sc(r.status_pct)}">${r.status_pct??'—'}%</span></td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.materials_used)}">${esc(r.materials_used)||'—'}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.work_performed)}">${esc(r.work_performed)||'—'}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.notes)}">${esc(r.notes)||'—'}</td>
+      <td>${r._photosLink ? `<a class="drive-link" href="${r._photosLink}" target="_blank">📁 View</a>` : '—'}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('total-count').textContent   = sorted.length;
+  document.getElementById('visible-count').textContent = sorted.length;
+  applyFilters();
+}
+
+function sortReports(arr) {
+  return arr.sort((a, b) => {
+    let va = a[sortCol] ?? '', vb = b[sortCol] ?? '';
+    if (typeof va === 'number') return sortAsc ? va - vb : vb - va;
+    return sortAsc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+  });
+}
+
+function sortTable(col) {
+  if (sortCol === col) sortAsc = !sortAsc; else { sortCol = col; sortAsc = true; }
+  document.querySelectorAll('thead th').forEach(th => {
+    th.classList.remove('sorted');
+    const arrow = th.querySelector('.sort-arrow');
+    if (arrow) arrow.textContent = '↕';
+  });
+  const ths = document.querySelectorAll('thead th');
+  const cols = ['date','technician','floor','unit',null,'hours_worked','status_pct'];
+  const idx = cols.indexOf(col);
+  if (idx >= 0 && ths[idx]) {
+    ths[idx].classList.add('sorted');
+    const arrow = ths[idx].querySelector('.sort-arrow');
+    if (arrow) arrow.textContent = sortAsc ? '↑' : '↓';
+  }
+  if (activeProject) renderTable(activeProject);
+}
+
+function updateStats(projectName) {
+  const reports = projectData[projectName]?.reports || [];
+  const n = reports.length;
+  const totalH = reports.reduce((s,r) => s + (parseFloat(r.hours_worked)||0), 0);
+  const avgPct = n ? Math.round(reports.reduce((s,r) => s + (parseFloat(r.status_pct)||0), 0) / n) : 0;
+  const floors = new Set(reports.map(r => r.floor).filter(Boolean)).size;
+  const units  = new Set(reports.map(r => r.unit).filter(Boolean)).size;
+  document.getElementById('s-reports').textContent = n;
+  document.getElementById('s-hours').textContent   = totalH.toFixed(1)+'h';
+  document.getElementById('s-avg').textContent     = avgPct+'%';
+  document.getElementById('s-floors').textContent  = floors;
+  document.getElementById('s-units').textContent   = units;
+}
+
+function updateWorkforceNotes() {
+  const all = Object.values(projectData).flatMap(p => p.reports);
+  document.getElementById('workforce-notes').textContent = all.map(r =>
+    `[${r.date}] ${r.technician} | ${r.project} – ${r.floor}, ${r.unit}, ${r.zone} | ${r.hours_worked}h | ${r.status_pct}% complete\n${r.workforce_note||''}`
+  ).join('\n\n');
+}
+
+// ── EXPORT FILTERED ─────────────────────────────────────────────────────────
+function exportFiltered() {
+  if (!activeProject) return;
+  const allR = projectData[activeProject]?.reports || [];
+  const visibleIdxs = new Set(
+    Array.from(document.querySelectorAll('#reports-body tr[data-idx]:not(.hidden-row)')).map(tr => parseInt(tr.dataset.idx))
+  );
+  const filtered = allR.filter((_, i) => visibleIdxs.has(i));
+  if (!filtered.length) { showError('No visible rows to export.'); return; }
+
+  const blob = buildExcelBlob(filtered, activeProject);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${activeProject} – Filtered Report.xlsx`;
+  a.click();
+}
+
+// ── HELPERS ─────────────────────────────────────────────────────────────────
+function sc(p) { if(p>=100)return's100'; if(p>=75)return's75'; if(p>=50)return's50'; if(p>=25)return's25'; return 's0'; }
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+function showError(msg) {
+  const e = document.getElementById('error-msg');
+  e.textContent = msg; e.style.display = 'block';
+  setTimeout(() => e.style.display = 'none', 8000);
+}
+function setLoading(on) {
+  document.getElementById('analyze-btn').disabled = on;
+  document.getElementById('spinner').style.display = on ? 'block' : 'none';
+  document.getElementById('btn-label').textContent = on ? 'Saving to Drive...' : '⚡ Analyze & Save to Drive';
+}
+function clearForm() {
+  ['tech-name','project-name','floor-name','unit-name','zone-name','whatsapp-text','hours-override'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('photo-previews').innerHTML = '';
+  photoFiles = []; photoBase64 = [];
+  document.getElementById('report-date').valueAsDate = new Date();
+}
+function scrollToTop() { window.scrollTo({ top:0, behavior:'smooth' }); }
+function copyNotes() {
+  navigator.clipboard.writeText(document.getElementById('workforce-notes').textContent).then(() => {
+    const b = document.querySelector('.copy-btn');
+    b.textContent = '✅ Copied!';
+    setTimeout(() => b.textContent = '📋 Copy to clipboard', 2000);
+  });
+}
+
+// ── SETUP INSTRUCTIONS ──────────────────────────────────────────────────────
+function showSetup() {
+  document.getElementById('auth-section').innerHTML = `
+    <div style="text-align:left">
+      <div style="font-size:2rem;text-align:center;margin-bottom:16px">⚙️</div>
+      <h2 style="text-align:center;margin-bottom:20px">One-time Setup (5 min)</h2>
+      <p style="color:var(--muted);font-size:0.76rem;line-height:1.8;margin-bottom:20px">You need a free Google API Client ID to enable Drive integration.</p>
+      ${[
+        'Go to <a href="https://console.cloud.google.com" target="_blank" style="color:var(--accent)">console.cloud.google.com</a> and sign in',
+        'Click <strong>Select a project → New Project</strong> → name it <em>FieldTrack</em> → Create',
+        'Left menu: <strong>APIs & Services → OAuth consent screen → External → app name "FieldTrack" → Save</strong>',
+        'Left menu: <strong>Credentials → + Create Credentials → OAuth Client ID → Web application</strong>',
+        `Under <strong>Authorized JavaScript origins</strong> add exactly: <code style="background:var(--surface2);padding:2px 8px;border-radius:4px;font-size:0.7rem">${window.location.origin}</code>`,
+        'Click <strong>Create</strong> → copy the <strong>Client ID</strong>',
+        'Open this HTML file in Notepad, find <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:0.7rem">YOUR_GOOGLE_CLIENT_ID_HERE</code>, replace it with your Client ID → Save',
+        'Reopen in your browser → Done ✅'
+      ].map((s,i)=>`<div style="display:flex;gap:12px;margin-bottom:12px;align-items:flex-start">
+        <div style="min-width:24px;height:24px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:0.72rem;flex-shrink:0;margin-top:2px">${i+1}</div>
+        <div style="font-size:0.74rem;line-height:1.7">${s}</div></div>`).join('')}
+    </div>`;
+}
+
+// ── INIT ────────────────────────────────────────────────────────────────────
+document.getElementById('report-date').valueAsDate = new Date();
+handleAuthCallback();
+</script>
+</body>
+</html>
