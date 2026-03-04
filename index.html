@@ -530,10 +530,13 @@ async function driveJSON(url, method='GET', body=null, extra={}) {
 async function findOrCreate(name, parentId) {
   const q = `name='${name.replace(/'/g,"\\'")}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
   const res = await driveJSON(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,webViewLink)`);
+  if (res.error) throw new Error('Drive search failed: ' + res.error.message);
   if (res.files?.length) return res.files[0];
-  return driveJSON('https://www.googleapis.com/drive/v3/files?fields=id,webViewLink','POST',
+  const created = await driveJSON('https://www.googleapis.com/drive/v3/files?fields=id,webViewLink','POST',
     JSON.stringify({ name, mimeType:'application/vnd.google-apps.folder', parents:[parentId] }),
     {'Content-Type':'application/json'});
+  if (created.error) throw new Error('Drive folder creation failed: ' + created.error.message);
+  return created;
 }
 
 async function findFile(name, parentId) {
@@ -548,7 +551,9 @@ async function uploadBlob(blob, name, parentId) {
   form.append('file', blob);
   const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',
     { method:'POST', headers:{Authorization:'Bearer '+accessToken}, body:form });
-  return r.json();
+  const data = await r.json();
+  if (data.error) throw new Error('Upload failed: ' + data.error.message);
+  return data;
 }
 
 async function updateBlob(fileId, blob) {
@@ -557,10 +562,18 @@ async function updateBlob(fileId, blob) {
 }
 
 async function ensureRootFolder() {
-  const f = await findOrCreate('FieldTrack Reports', 'root');
-  rootFolderId = f.id;
-  document.getElementById('folder-link').href = f.webViewLink || `https://drive.google.com/drive/folders/${f.id}`;
-  document.getElementById('folder-banner').style.display = 'flex';
+  try {
+    const f = await findOrCreate('FieldTrack Reports', 'root');
+    if (!f || !f.id) throw new Error('Could not create FieldTrack Reports folder');
+    rootFolderId = f.id;
+    // Fetch the folder again to get webViewLink reliably
+    const details = await driveJSON(`https://www.googleapis.com/drive/v3/files/${f.id}?fields=id,webViewLink,name`);
+    const link = details.webViewLink || `https://drive.google.com/drive/folders/${f.id}`;
+    document.getElementById('folder-link').href = link;
+    document.getElementById('folder-banner').style.display = 'flex';
+  } catch(err) {
+    showError('Drive connection failed: ' + err.message + '. Please sign out and sign in again.');
+  }
 }
 
 // ── PHOTOS ──────────────────────────────────────────────────────────────────
@@ -963,17 +976,4 @@ function showSetup() {
         'Left menu: <strong>Credentials → + Create Credentials → OAuth Client ID → Web application</strong>',
         `Under <strong>Authorized JavaScript origins</strong> add exactly: <code style="background:var(--surface2);padding:2px 8px;border-radius:4px;font-size:0.7rem">${window.location.origin}</code>`,
         'Click <strong>Create</strong> → copy the <strong>Client ID</strong>',
-        'Open this HTML file in Notepad, find <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:0.7rem">262584479732-i62f5m7dfbc3d9o21qp28elfqkt4f3ht.apps.googleusercontent.com</code>, replace it with your Client ID → Save',
-        'Reopen in your browser → Done ✅'
-      ].map((s,i)=>`<div style="display:flex;gap:12px;margin-bottom:12px;align-items:flex-start">
-        <div style="min-width:24px;height:24px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:0.72rem;flex-shrink:0;margin-top:2px">${i+1}</div>
-        <div style="font-size:0.74rem;line-height:1.7">${s}</div></div>`).join('')}
-    </div>`;
-}
-
-// ── INIT ────────────────────────────────────────────────────────────────────
-document.getElementById('report-date').valueAsDate = new Date();
-handleAuthCallback();
-</script>
-</body>
-</html>
+        'Open this HTML file in Notepad, find <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:0.7rem">262584479732-i62f5m7dfbc3d9o21qp28elfqkt4f3ht.apps.googleusercontent.com</code>, re
