@@ -458,6 +458,15 @@ let photoBase64 = [];
 
 // ── AUTH ────────────────────────────────────────────────────────────────────
 function startGoogleAuth() {
+  // Read API key from input field
+  const keyInput = document.getElementById('api-key-input');
+  if (keyInput && keyInput.value.trim().startsWith('sk-')) {
+    ANTHROPIC_API_KEY = keyInput.value.trim();
+  }
+  if (!ANTHROPIC_API_KEY || !ANTHROPIC_API_KEY.startsWith('sk-')) {
+    alert('Please enter your Anthropic API key first (starts with sk-ant-api03-)');
+    return;
+  }
   google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
     scope: SCOPES,
@@ -927,12 +936,4 @@ function clearForm() {
   ['tech-name','project-name','floor-name','unit-name','zone-name','whatsapp-text','hours-override'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('photo-previews').innerHTML = '';
   photoFiles = []; photoBase64 = [];
-  document.getElementById('report-date').valueAsDate = new Date();
-}
-function scrollToTop() { window.scrollTo({ top:0, behavior:'smooth' }); }
-function copyNotes() {
-  navigator.clipboard.writeText(document.getElementById('workforce-notes').textContent).then(() => {
-    const b = document.querySelector('.copy-btn');
-    b.textContent = '✅ Copied!';
-    setTimeout(() => b.textContent = '📋 Copy to clipboard', 2000);
-  
+  document.getElementById('report-date').valu
