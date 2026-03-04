@@ -430,6 +430,7 @@ Hi, today I finished the kitchen and bathroom on Floor 20, Unit 2003. Installed 
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────────────────
 const GOOGLE_CLIENT_ID = '262584479732-i62f5m7dfbc3d9o21qp28elfqkt4f3ht.apps.googleusercontent.com';
+const ANTHROPIC_API_KEY = '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';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
 
 let accessToken   = null;
@@ -599,7 +600,7 @@ Respond ONLY with valid JSON, no markdown:
 }` });
 
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true'},
       body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, messages:[{role:'user', content:parts}] })
     });
     const data = await resp.json();
@@ -922,13 +923,4 @@ function showSetup() {
         'Reopen in your browser → Done ✅'
       ].map((s,i)=>`<div style="display:flex;gap:12px;margin-bottom:12px;align-items:flex-start">
         <div style="min-width:24px;height:24px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:0.72rem;flex-shrink:0;margin-top:2px">${i+1}</div>
-        <div style="font-size:0.74rem;line-height:1.7">${s}</div></div>`).join('')}
-    </div>`;
-}
-
-// ── INIT ────────────────────────────────────────────────────────────────────
-document.getElementById('report-date').valueAsDate = new Date();
-handleAuthCallback();
-</script>
-</body>
-</html>
+        <div style="font-size:0.74r
