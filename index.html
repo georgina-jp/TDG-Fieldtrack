@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FieldTrack — Daily Work Reports</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
 
@@ -445,19 +446,19 @@ let photoBase64 = [];
 
 // ── AUTH ────────────────────────────────────────────────────────────────────
 function startGoogleAuth() {
-  // Client ID is set
-  const p = new URLSearchParams({
+  google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
-    redirect_uri: window.location.origin + window.location.pathname,
-    response_type: 'token', scope: SCOPES, prompt: 'select_account'
-  });
-  window.location.href = 'https://accounts.google.com/o/oauth2/auth?' + p;
+    scope: SCOPES,
+    callback: (response) => {
+      if (response.error) { showError('Sign-in error: ' + response.error); return; }
+      accessToken = response.access_token;
+      loadUserInfo();
+    }
+  }).requestAccessToken({ prompt: 'select_account' });
 }
 
 function handleAuthCallback() {
-  const params = new URLSearchParams(window.location.hash.substring(1));
-  const token = params.get('access_token');
-  if (token) { accessToken = token; window.history.replaceState({}, '', window.location.pathname); loadUserInfo(); }
+  // Handled by GIS callback
 }
 
 async function loadUserInfo() {
