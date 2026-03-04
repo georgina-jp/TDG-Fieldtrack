@@ -469,11 +469,15 @@ function startGoogleAuth() {
     alert('Please enter your Anthropic API key first (starts with sk-ant-api03-)');
     return;
   }
+  if (typeof google === 'undefined') {
+    alert('Google sign-in is still loading. Please wait 3 seconds and try again.');
+    return;
+  }
   google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
     scope: SCOPES,
     callback: (response) => {
-      if (response.error) { showError('Sign-in error: ' + response.error); return; }
+      if (response.error) { alert('Sign-in error: ' + response.error); return; }
       accessToken = response.access_token;
       loadUserInfo();
     }
@@ -481,7 +485,7 @@ function startGoogleAuth() {
 }
 
 function handleAuthCallback() {
-  // Handled by GIS callback
+  // Not needed with GIS
 }
 
 async function loadUserInfo() {
@@ -976,4 +980,4 @@ function showSetup() {
         'Left menu: <strong>Credentials → + Create Credentials → OAuth Client ID → Web application</strong>',
         `Under <strong>Authorized JavaScript origins</strong> add exactly: <code style="background:var(--surface2);padding:2px 8px;border-radius:4px;font-size:0.7rem">${window.location.origin}</code>`,
         'Click <strong>Create</strong> → copy the <strong>Client ID</strong>',
-        'Open this HTML file in Notepad, find <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:0.7rem">262584479732-i62f5m7dfbc3d9o21qp28elfqkt4f3ht.apps.googleusercontent.com</code>, re
+        'Open this HTML file in Notepad, find <code style="background:var(--surface2);padd
