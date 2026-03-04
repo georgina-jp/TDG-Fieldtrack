@@ -935,34 +935,4 @@ function copyNotes() {
     const b = document.querySelector('.copy-btn');
     b.textContent = '✅ Copied!';
     setTimeout(() => b.textContent = '📋 Copy to clipboard', 2000);
-  });
-}
-
-// ── SETUP INSTRUCTIONS ──────────────────────────────────────────────────────
-function showSetup() {
-  document.getElementById('auth-section').innerHTML = `
-    <div style="text-align:left">
-      <div style="font-size:2rem;text-align:center;margin-bottom:16px">⚙️</div>
-      <h2 style="text-align:center;margin-bottom:20px">One-time Setup (5 min)</h2>
-      <p style="color:var(--muted);font-size:0.76rem;line-height:1.8;margin-bottom:20px">You need a free Google API Client ID to enable Drive integration.</p>
-      ${[
-        'Go to <a href="https://console.cloud.google.com" target="_blank" style="color:var(--accent)">console.cloud.google.com</a> and sign in',
-        'Click <strong>Select a project → New Project</strong> → name it <em>FieldTrack</em> → Create',
-        'Left menu: <strong>APIs & Services → OAuth consent screen → External → app name "FieldTrack" → Save</strong>',
-        'Left menu: <strong>Credentials → + Create Credentials → OAuth Client ID → Web application</strong>',
-        `Under <strong>Authorized JavaScript origins</strong> add exactly: <code style="background:var(--surface2);padding:2px 8px;border-radius:4px;font-size:0.7rem">${window.location.origin}</code>`,
-        'Click <strong>Create</strong> → copy the <strong>Client ID</strong>',
-        'Open this HTML file in Notepad, find <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:0.7rem">262584479732-i62f5m7dfbc3d9o21qp28elfqkt4f3ht.apps.googleusercontent.com</code>, replace it with your Client ID → Save',
-        'Reopen in your browser → Done ✅'
-      ].map((s,i)=>`<div style="display:flex;gap:12px;margin-bottom:12px;align-items:flex-start">
-        <div style="min-width:24px;height:24px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:0.72rem;flex-shrink:0;margin-top:2px">${i+1}</div>
-        <div style="font-size:0.74rem;line-height:1.7">${s}</div></div>`).join('')}
-    </div>`;
-}
-
-// ── INIT ────────────────────────────────────────────────────────────────────
-document.getElementById('report-date').valueAsDate = new Date();
-handleAuthCallback();
-</script>
-</body>
-</html>
+  
