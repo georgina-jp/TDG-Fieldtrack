@@ -581,11 +581,13 @@ async function ensureRootFolder() {
 }
 
 // ── PHOTOS ──────────────────────────────────────────────────────────────────
-document.getElementById('photo-input').addEventListener('change', e => loadPhotos(e.target.files));
-const pd = document.getElementById('photo-drop');
-pd.addEventListener('dragover',  e => { e.preventDefault(); pd.classList.add('dragover'); });
-pd.addEventListener('dragleave', () => pd.classList.remove('dragover'));
-pd.addEventListener('drop',      e => { e.preventDefault(); pd.classList.remove('dragover'); loadPhotos(e.dataTransfer.files); });
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('photo-input').addEventListener('change', e => loadPhotos(e.target.files));
+  const pd = document.getElementById('photo-drop');
+  pd.addEventListener('dragover',  e => { e.preventDefault(); pd.classList.add('dragover'); });
+  pd.addEventListener('dragleave', () => pd.classList.remove('dragover'));
+  pd.addEventListener('drop',      e => { e.preventDefault(); pd.classList.remove('dragover'); loadPhotos(e.dataTransfer.files); });
+});
 
 function loadPhotos(files) {
   photoFiles = Array.from(files).slice(0, 8);
@@ -980,4 +982,4 @@ function showSetup() {
         'Left menu: <strong>Credentials → + Create Credentials → OAuth Client ID → Web application</strong>',
         `Under <strong>Authorized JavaScript origins</strong> add exactly: <code style="background:var(--surface2);padding:2px 8px;border-radius:4px;font-size:0.7rem">${window.location.origin}</code>`,
         'Click <strong>Create</strong> → copy the <strong>Client ID</strong>',
-        'Open this HTML file in Notepad, find <code style="background:var(--surface2);padd
+        'Open thi
