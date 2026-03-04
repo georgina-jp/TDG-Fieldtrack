@@ -270,6 +270,16 @@
     <div class="perm-item"><div class="perm-dot"></div>Read your name and email for the top bar</div>
   </div>
   <p style="margin-top:16px;font-size:0.66rem;color:var(--muted);">🔒 Data goes directly from your browser to Google Drive. No third-party servers.</p>
+
+  <div style="margin-top:24px; text-align:left;">
+    <div style="font-size:0.66rem; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:8px;">🔑 Anthropic API Key</div>
+    <div style="display:flex; gap:8px;">
+      <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." 
+        style="flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-family:'DM Mono',monospace; font-size:0.78rem; padding:10px 12px; outline:none;"
+        oninput="ANTHROPIC_API_KEY = this.value">
+    </div>
+    <p style="font-size:0.65rem; color:var(--muted); margin-top:6px; line-height:1.6;">Get your key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent);">console.anthropic.com</a> → API Keys → Create Key. You'll enter this once each time you open the tool.</p>
+  </div>
 </div>
 
 <!-- APP -->
@@ -283,6 +293,7 @@
       <div class="user-email" id="user-email"></div>
     </div>
     <div class="drive-badge" style="margin-left:10px;"><div class="drive-dot"></div>Drive connected</div>
+    <div id="api-key-badge" style="display:flex;align-items:center;gap:6px;font-size:0.68rem;padding:5px 12px;border-radius:20px;color:var(--muted);border:1px solid var(--border);cursor:pointer;" onclick="promptApiKey()" title="Click to update API key">🔑 API Key</div>
     <button class="btn-signout" onclick="signOut()">Sign out</button>
   </div>
 
@@ -430,7 +441,7 @@ Hi, today I finished the kitchen and bathroom on Floor 20, Unit 2003. Installed 
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────────────────
 const GOOGLE_CLIENT_ID = '262584479732-i62f5m7dfbc3d9o21qp28elfqkt4f3ht.apps.googleusercontent.com';
-const ANTHROPIC_API_KEY = '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';
+let ANTHROPIC_API_KEY = '';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
 
 let accessToken   = null;
@@ -470,7 +481,25 @@ async function loadUserInfo() {
   if (u.picture) av.innerHTML = `<img src="${u.picture}">`; else av.textContent = (u.name||'U')[0];
   document.getElementById('auth-section').style.display = 'none';
   document.getElementById('app-section').style.display  = 'block';
+  // Check if API key was entered
+  const keyInput = document.getElementById('api-key-input');
+  if (keyInput && keyInput.value) {
+    ANTHROPIC_API_KEY = keyInput.value;
+    const badge = document.getElementById('api-key-badge');
+    if (badge) { badge.style.color='var(--accent2)'; badge.style.borderColor='rgba(74,222,128,0.3)'; badge.innerHTML='🔑 API Key ✓'; }
+  }
   await ensureRootFolder();
+}
+
+function promptApiKey() {
+  const key = prompt('Enter your Anthropic API key (sk-ant-api03-...):');
+  if (key && key.startsWith('sk-')) {
+    ANTHROPIC_API_KEY = key;
+    const badge = document.getElementById('api-key-badge');
+    badge.style.color = 'var(--accent2)';
+    badge.style.borderColor = 'rgba(74,222,128,0.3)';
+    badge.innerHTML = '🔑 API Key ✓';
+  }
 }
 
 function signOut() {
@@ -561,6 +590,10 @@ async function analyzeReport() {
   const zoneName    = document.getElementById('zone-name').value.trim();
   const msgText     = document.getElementById('whatsapp-text').value.trim();
 
+  if (!ANTHROPIC_API_KEY || !ANTHROPIC_API_KEY.startsWith('sk-')) {
+    showError('Please enter your Anthropic API key first. Click the 🔑 API Key button in the top bar.');
+    return;
+  }
   if (!msgText && photoBase64.length === 0) { showError('Please paste the WhatsApp message or add photos.'); return; }
 
   setLoading(true);
@@ -923,4 +956,13 @@ function showSetup() {
         'Reopen in your browser → Done ✅'
       ].map((s,i)=>`<div style="display:flex;gap:12px;margin-bottom:12px;align-items:flex-start">
         <div style="min-width:24px;height:24px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:0.72rem;flex-shrink:0;margin-top:2px">${i+1}</div>
-        <div style="font-size:0.74r
+        <div style="font-size:0.74rem;line-height:1.7">${s}</div></div>`).join('')}
+    </div>`;
+}
+
+// ── INIT ────────────────────────────────────────────────────────────────────
+document.getElementById('report-date').valueAsDate = new Date();
+handleAuthCallback();
+</script>
+</body>
+</html>
