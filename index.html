@@ -258,16 +258,6 @@
   <div style="font-size:2.5rem;margin-bottom:16px;">🔐</div>
   <h2>Connect your Google Account</h2>
   <p>Sign in to save all reports and photos directly to Google Drive, organized by project — with a single accumulating spreadsheet per project your team can filter by date, floor, unit, or technician at any time.</p>
-
-  <div style="text-align:left;margin-bottom:20px;">
-    <div style="font-size:0.66rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">🔑 Step 1 — Enter your Anthropic API Key</div>
-    <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." 
-      style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'DM Mono',monospace;font-size:0.78rem;padding:12px;outline:none;margin-bottom:6px;"
-    >
-    <p style="font-size:0.65rem;color:var(--muted);line-height:1.6;">Get your key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent);">console.anthropic.com</a> → API Keys → Create Key</p>
-  </div>
-
-  <div style="font-size:0.66rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;text-align:left;">🔐 Step 2 — Sign in with Google</div>
   <button class="btn-google" onclick="startGoogleAuth()">
     <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
     Sign in with Google
@@ -280,8 +270,11 @@
     <div class="perm-item"><div class="perm-dot"></div>Read your name and email for the top bar</div>
   </div>
   <p style="margin-top:16px;font-size:0.66rem;color:var(--muted);">🔒 Data goes directly from your browser to Google Drive. No third-party servers.</p>
-
-
+  <div style="margin-top:20px;text-align:left;">
+    <label style="font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">🔑 Anthropic API Key — enter before signing in</label>
+    <input id="api-key-input" type="password" placeholder="sk-ant-api03-..." style="width:100%;background:#1e2230;border:1px solid #2a2f3d;border-radius:10px;color:#e8eaf0;font-family:'DM Mono',monospace;font-size:0.78rem;padding:12px;outline:none;box-sizing:border-box;">
+    <p style="font-size:0.63rem;color:#6b7280;margin-top:6px;">Get it at <a href="https://console.anthropic.com" target="_blank" style="color:#f0c040;">console.anthropic.com</a> → API Keys → Create Key</p>
+  </div>
 </div>
 
 <!-- APP -->
@@ -295,7 +288,6 @@
       <div class="user-email" id="user-email"></div>
     </div>
     <div class="drive-badge" style="margin-left:10px;"><div class="drive-dot"></div>Drive connected</div>
-    <div id="api-key-badge" style="display:flex;align-items:center;gap:6px;font-size:0.68rem;padding:5px 12px;border-radius:20px;color:var(--muted);border:1px solid var(--border);cursor:pointer;" onclick="promptApiKey()" title="Click to update API key">🔑 API Key</div>
     <button class="btn-signout" onclick="signOut()">Sign out</button>
   </div>
 
@@ -460,17 +452,9 @@ let photoBase64 = [];
 
 // ── AUTH ────────────────────────────────────────────────────────────────────
 function startGoogleAuth() {
-  // Read API key from input field
-  const keyInput = document.getElementById('api-key-input');
-  if (keyInput && keyInput.value.trim().startsWith('sk-')) {
-    ANTHROPIC_API_KEY = keyInput.value.trim();
-  }
-  if (!ANTHROPIC_API_KEY || !ANTHROPIC_API_KEY.startsWith('sk-')) {
-    alert('Please enter your Anthropic API key first (starts with sk-ant-api03-)');
-    return;
-  }
-  if (typeof google === 'undefined') {
-    alert('Google sign-in is still loading. Please wait 3 seconds and try again.');
+  ANTHROPIC_API_KEY = (document.getElementById('api-key-input').value || '').trim();
+  if (!ANTHROPIC_API_KEY.startsWith('sk-')) {
+    alert('Please enter your Anthropic API key first.');
     return;
   }
   google.accounts.oauth2.initTokenClient({
@@ -484,9 +468,7 @@ function startGoogleAuth() {
   }).requestAccessToken({ prompt: 'select_account' });
 }
 
-function handleAuthCallback() {
-  // Not needed with GIS
-}
+function handleAuthCallback() {}
 
 async function loadUserInfo() {
   const u = await (await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { Authorization: 'Bearer ' + accessToken } })).json();
@@ -496,25 +478,7 @@ async function loadUserInfo() {
   if (u.picture) av.innerHTML = `<img src="${u.picture}">`; else av.textContent = (u.name||'U')[0];
   document.getElementById('auth-section').style.display = 'none';
   document.getElementById('app-section').style.display  = 'block';
-  // Check if API key was entered
-  const keyInput = document.getElementById('api-key-input');
-  if (keyInput && keyInput.value) {
-    ANTHROPIC_API_KEY = keyInput.value;
-    const badge = document.getElementById('api-key-badge');
-    if (badge) { badge.style.color='var(--accent2)'; badge.style.borderColor='rgba(74,222,128,0.3)'; badge.innerHTML='🔑 API Key ✓'; }
-  }
   await ensureRootFolder();
-}
-
-function promptApiKey() {
-  const key = prompt('Enter your Anthropic API key (sk-ant-api03-...):');
-  if (key && key.startsWith('sk-')) {
-    ANTHROPIC_API_KEY = key;
-    const badge = document.getElementById('api-key-badge');
-    badge.style.color = 'var(--accent2)';
-    badge.style.borderColor = 'rgba(74,222,128,0.3)';
-    badge.innerHTML = '🔑 API Key ✓';
-  }
 }
 
 function signOut() {
@@ -534,13 +498,10 @@ async function driveJSON(url, method='GET', body=null, extra={}) {
 async function findOrCreate(name, parentId) {
   const q = `name='${name.replace(/'/g,"\\'")}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
   const res = await driveJSON(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,webViewLink)`);
-  if (res.error) throw new Error('Drive search failed: ' + res.error.message);
   if (res.files?.length) return res.files[0];
-  const created = await driveJSON('https://www.googleapis.com/drive/v3/files?fields=id,webViewLink','POST',
+  return driveJSON('https://www.googleapis.com/drive/v3/files?fields=id,webViewLink','POST',
     JSON.stringify({ name, mimeType:'application/vnd.google-apps.folder', parents:[parentId] }),
     {'Content-Type':'application/json'});
-  if (created.error) throw new Error('Drive folder creation failed: ' + created.error.message);
-  return created;
 }
 
 async function findFile(name, parentId) {
@@ -555,9 +516,7 @@ async function uploadBlob(blob, name, parentId) {
   form.append('file', blob);
   const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',
     { method:'POST', headers:{Authorization:'Bearer '+accessToken}, body:form });
-  const data = await r.json();
-  if (data.error) throw new Error('Upload failed: ' + data.error.message);
-  return data;
+  return r.json();
 }
 
 async function updateBlob(fileId, blob) {
@@ -566,28 +525,19 @@ async function updateBlob(fileId, blob) {
 }
 
 async function ensureRootFolder() {
-  try {
-    const f = await findOrCreate('FieldTrack Reports', 'root');
-    if (!f || !f.id) throw new Error('Could not create FieldTrack Reports folder');
-    rootFolderId = f.id;
-    // Fetch the folder again to get webViewLink reliably
-    const details = await driveJSON(`https://www.googleapis.com/drive/v3/files/${f.id}?fields=id,webViewLink,name`);
-    const link = details.webViewLink || `https://drive.google.com/drive/folders/${f.id}`;
-    document.getElementById('folder-link').href = link;
-    document.getElementById('folder-banner').style.display = 'flex';
-  } catch(err) {
-    showError('Drive connection failed: ' + err.message + '. Please sign out and sign in again.');
-  }
+  const f = await findOrCreate('FieldTrack Reports', 'root');
+  rootFolderId = f.id;
+  const details = await driveJSON(`https://www.googleapis.com/drive/v3/files/${f.id}?fields=id,webViewLink,name`);
+  document.getElementById('folder-link').href = details.webViewLink || `https://drive.google.com/drive/folders/${f.id}`;
+  document.getElementById('folder-banner').style.display = 'flex';
 }
 
 // ── PHOTOS ──────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('photo-input').addEventListener('change', e => loadPhotos(e.target.files));
-  const pd = document.getElementById('photo-drop');
-  pd.addEventListener('dragover',  e => { e.preventDefault(); pd.classList.add('dragover'); });
-  pd.addEventListener('dragleave', () => pd.classList.remove('dragover'));
-  pd.addEventListener('drop',      e => { e.preventDefault(); pd.classList.remove('dragover'); loadPhotos(e.dataTransfer.files); });
-});
+document.getElementById('photo-input').addEventListener('change', e => loadPhotos(e.target.files));
+const pd = document.getElementById('photo-drop');
+pd.addEventListener('dragover',  e => { e.preventDefault(); pd.classList.add('dragover'); });
+pd.addEventListener('dragleave', () => pd.classList.remove('dragover'));
+pd.addEventListener('drop',      e => { e.preventDefault(); pd.classList.remove('dragover'); loadPhotos(e.dataTransfer.files); });
 
 function loadPhotos(files) {
   photoFiles = Array.from(files).slice(0, 8);
@@ -620,10 +570,6 @@ async function analyzeReport() {
   const zoneName    = document.getElementById('zone-name').value.trim();
   const msgText     = document.getElementById('whatsapp-text').value.trim();
 
-  if (!ANTHROPIC_API_KEY || !ANTHROPIC_API_KEY.startsWith('sk-')) {
-    showError('Please enter your Anthropic API key first. Click the 🔑 API Key button in the top bar.');
-    return;
-  }
   if (!msgText && photoBase64.length === 0) { showError('Please paste the WhatsApp message or add photos.'); return; }
 
   setLoading(true);
@@ -663,7 +609,7 @@ Respond ONLY with valid JSON, no markdown:
 }` });
 
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST', headers:{'Content-Type':'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true'},
+      method:'POST', headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC_API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, messages:[{role:'user', content:parts}] })
     });
     const data = await resp.json();
@@ -982,4 +928,17 @@ function showSetup() {
         'Left menu: <strong>Credentials → + Create Credentials → OAuth Client ID → Web application</strong>',
         `Under <strong>Authorized JavaScript origins</strong> add exactly: <code style="background:var(--surface2);padding:2px 8px;border-radius:4px;font-size:0.7rem">${window.location.origin}</code>`,
         'Click <strong>Create</strong> → copy the <strong>Client ID</strong>',
-        'Open thi
+        'Open this HTML file in Notepad, find <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:0.7rem">YOUR_GOOGLE_CLIENT_ID_HERE</code>, replace it with your Client ID → Save',
+        'Reopen in your browser → Done ✅'
+      ].map((s,i)=>`<div style="display:flex;gap:12px;margin-bottom:12px;align-items:flex-start">
+        <div style="min-width:24px;height:24px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:0.72rem;flex-shrink:0;margin-top:2px">${i+1}</div>
+        <div style="font-size:0.74rem;line-height:1.7">${s}</div></div>`).join('')}
+    </div>`;
+}
+
+// ── INIT ────────────────────────────────────────────────────────────────────
+document.getElementById('report-date').valueAsDate = new Date();
+handleAuthCallback();
+</script>
+</body>
+</html>
